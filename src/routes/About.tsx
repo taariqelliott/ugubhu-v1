@@ -1,5 +1,11 @@
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
+import {
+  IconPlayerPauseFilled,
+  IconPlayerPlayFilled,
+  IconVolume,
+  IconVolumeOff,
+} from "@tabler/icons-react";
 import { Howl, Howler } from "howler";
 import { IFormat, parseBlob } from "music-metadata";
 import { ChangeEvent, useEffect, useState } from "react";
@@ -11,6 +17,7 @@ export default function AudioPlayer() {
   const [audiometadata, setAudiometadata] = useState<IFormat>();
   const [songDuration, setSongDuration] = useState<number>();
   const [isAudioMuted, setIsAudioMuted] = useState<boolean>(false);
+  const [isSoundPlaying, setIsSoundPlaying] = useState<boolean>(false);
 
   const getAudioFormat = (file: File | undefined): string | undefined => {
     if (!file) {
@@ -49,6 +56,8 @@ export default function AudioPlayer() {
           onload: () => setSongDuration(newSound.duration()),
         });
         setSound(newSound);
+        setIsSoundPlaying(false);
+        setIsAudioMuted(false);
       } else {
         console.error("Could not determine audio format for playback.");
       }
@@ -85,31 +94,48 @@ export default function AudioPlayer() {
     })();
   };
 
-  const playSound = () => {
+  const delay = (ms: number) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
+
+  const fadeSound = (
+    sound: Howl,
+    from: number,
+    to: number,
+    duration: number
+  ) => {
+    return new Promise<void>((resolve) => {
+      sound.fade(from, to, duration);
+      setTimeout(resolve, duration);
+    });
+  };
+
+  const playSound = async () => {
+    if (!sound) {
+      return;
+    }
     if (!sound?.playing()) {
-      sound?.fade(sound.volume(), 1, 200);
-      setTimeout(() => {
-        sound?.play();
-      }, 100);
+      setIsSoundPlaying(true);
+      sound?.play();
+      await delay(50);
+      await fadeSound(sound, sound.volume(), 1, 50);
     }
   };
 
-  const pauseSound = () => {
+  const pauseSound = async () => {
     if (sound?.playing()) {
-      sound?.fade(sound.volume(), 0, 200);
-      setTimeout(() => {
-        sound?.pause();
-      }, 100);
+      setIsSoundPlaying(false);
+      await fadeSound(sound, sound.volume(), 0, 100);
+      sound?.pause();
     }
   };
 
   const muteAudio = () => {
-    sound?.fade(sound.volume(), 0, 200);
+    sound?.fade(sound.volume(), 0, 100);
     setIsAudioMuted(true);
   };
 
   const unmuteAudio = () => {
-    sound?.fade(sound.volume(), 1, 200);
+    sound?.fade(sound.volume(), 1, 100);
     setIsAudioMuted(false);
   };
 
@@ -124,43 +150,53 @@ export default function AudioPlayer() {
         id="audio-upload-input"
       />
 
-      <div>{songDuration && songDuration > 0 && songDuration}</div>
-      {audiometadata && (
-        <div>
-          <p className="underline text-center">Metadata</p>
-          <p className="font-coupri">
-            <span className="text-danger-400">Bitrate:</span>{" "}
-            {audiometadata.bitrate}
-          </p>
-          <p className="font-coupri">
-            <span className="text-danger-400">Bits Per Sample:</span>{" "}
-            {audiometadata.bitsPerSample}
-          </p>
-          <p className="font-coupri">
-            <span className="text-danger-400">Duration:</span>{" "}
-            {audiometadata.duration?.toFixed(3)}
-          </p>
-          <p className="font-coupri">
-            <span className="text-danger-400">Sample Rate:</span>{" "}
-            {audiometadata.sampleRate}
-          </p>
-        </div>
-      )}
-      <section className="flex items-center justify-between w-full">
-        <Button color="secondary" className="w-24" onPress={playSound}>
-          play
-        </Button>
-        <Button color="secondary" className="w-24" onPress={pauseSound}>
-          pause
+      <section className="flex items-center justify-between w-full font-coupri">
+        <Button
+          color="secondary"
+          className="w-24"
+          onPress={isSoundPlaying ? pauseSound : playSound}
+        >
+          {isSoundPlaying ? (
+            <IconPlayerPauseFilled />
+          ) : (
+            <IconPlayerPlayFilled />
+          )}
         </Button>
         <Button
           color="secondary"
           className="w-24"
           onPress={isAudioMuted ? unmuteAudio : muteAudio}
         >
-          {isAudioMuted ? "unmute" : "mute"}
+          {isAudioMuted ? <IconVolumeOff /> : <IconVolume />}
         </Button>
       </section>
+      {audiometadata && (
+        <>
+          <div>
+            Duration in seconds:{" "}
+            {songDuration && songDuration > 0 && songDuration}
+          </div>
+          <div>
+            <p className="underline text-center font-coupri">Metadata</p>
+            <p className="font-coupri">
+              <span className="text-success-400">Bitrate:</span>{" "}
+              {audiometadata.bitrate}
+            </p>
+            <p className="font-coupri">
+              <span className="text-success-400">Bits Per Sample:</span>{" "}
+              {audiometadata.bitsPerSample}
+            </p>
+            <p className="font-coupri">
+              <span className="text-success-400">Duration:</span>{" "}
+              {audiometadata.duration?.toFixed(3)}
+            </p>
+            <p className="font-coupri">
+              <span className="text-success-400">Sample Rate:</span>{" "}
+              {audiometadata.sampleRate}
+            </p>
+          </div>
+        </>
+      )}
     </section>
   );
 }
