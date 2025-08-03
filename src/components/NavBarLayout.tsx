@@ -16,8 +16,8 @@ export default function NavBar() {
       href: "/",
     },
     {
-      name: "About",
-      href: "/about",
+      name: "Upload",
+      href: "/upload",
     },
   ];
   const [activePath, setActivePath] = useState<string>("");
@@ -41,7 +41,7 @@ export default function NavBar() {
         isBordered
         className="dark:bg-zinc-900/70 bg-zinc-100"
       >
-        <p className="fixed cursor-default select-none left-1 font-coupri bg-linear-to-r from-danger to-secondary bg-clip-text hover:from-primary hover:to-success transition-colors duration-500 text-transparent">
+        <p className="fixed cursor-default select-none left-1 font-coupri bg-linear-to-r from-danger to-secondary bg-clip-text hover:from-secondary hover:to-warning transition-colors duration-500 text-transparent">
           ugubhu
         </p>
         <NavbarContent
@@ -76,7 +76,7 @@ export default function NavBar() {
           </NavbarItem>
         </NavbarContent>
       </Navbar>
-      <section className="flex grow items-center justify-center">
+      <section className="flex grow items-center justify-center w-full">
         <Outlet />
       </section>
     </section>

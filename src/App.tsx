@@ -1,6 +1,6 @@
 import { Route, Routes } from "react-router";
 import Home from "./routes/Home";
-import About from "./routes/About";
+import Upload from "./routes/Upload";
 import NavBarLayout from "./components/NavBarLayout";
 
 export default function App() {
@@ -8,7 +8,7 @@ export default function App() {
     <Routes>
       <Route element={<NavBarLayout />}>
         <Route index element={<Home />} />
-        <Route path="about" element={<About />} />
+        <Route path="upload" element={<Upload />} />
       </Route>
     </Routes>
   );
