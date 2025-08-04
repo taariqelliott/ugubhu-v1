@@ -22,8 +22,8 @@ function createWindow() {
     height: 750,
     maxWidth: width,
     maxHeight: height,
-    minWidth: width / 4,
-    minHeight: height / 4
+    minWidth: 1e3,
+    minHeight: 750
   });
   win.webContents.on("did-finish-load", () => {
     win == null ? void 0 : win.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());

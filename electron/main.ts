@@ -42,8 +42,8 @@ function createWindow() {
     height: 750,
     maxWidth: width,
     maxHeight: height,
-    minWidth: width / 4,
-    minHeight: height / 4,
+    minWidth: 1000,
+    minHeight: 750,
   });
 
   // Test active push message to Renderer-process.
