@@ -5,6 +5,7 @@ export type AudioFile = {
   uuid: string;
   file: File;
   metadata: IAudioMetadata | undefined;
+  img?: Uint8Array | null;
 };
 
 export type IconSvgProps = SVGProps<SVGSVGElement> & {

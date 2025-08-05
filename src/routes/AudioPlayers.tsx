@@ -1,16 +1,19 @@
-import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Howl } from "howler";
 import { IAudioMetadata, parseBlob } from "music-metadata";
 import { useWavesurfer } from "@wavesurfer/react";
 import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
-import { VerticalDotsIcon } from "../components/VeritcalDotsIcon";
+import { VerticalDotsIcon } from "../components/ExtraIcons";
 import { AudioFile } from "../types/types";
+import lilGhost from "../assets/lilghost.png";
+import { Ghost } from "../components/ExtraIcons";
 import {
   Dropdown,
   DropdownItem,
   DropdownMenu,
   DropdownTrigger,
+  Image,
 } from "@heroui/react";
 import {
   Table,
@@ -44,6 +47,7 @@ export default function AudioPlayer() {
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isLooping, setIsLooping] = useState<boolean>(false);
+  const [audioImg, setAudioImg] = useState<Uint8Array | null>(null);
   // const [, setIsSeeking] = useState<boolean>(false);
 
   // Refs
@@ -113,14 +117,32 @@ export default function AudioPlayer() {
     try {
       const parsedMeta = await parseBlob(uploadedFile);
       const uploadedAudioUUID = crypto.randomUUID();
+
+      let audioImage;
+      if (parsedMeta.common.picture && parsedMeta.common.picture.length > 0) {
+        audioImage = parsedMeta.common.picture[0].data;
+      }
+
       const newAudioFile: AudioFile = {
         uuid: uploadedAudioUUID,
         file: uploadedFile,
         metadata: parsedMeta,
+        img: audioImage,
       };
 
+      if (audioFiles.includes(newAudioFile)) {
+        return;
+      }
       setAudioFiles((prev) => [...prev, newAudioFile]);
       setAudioMeta(parsedMeta);
+
+      const fileUrl = URL.createObjectURL(uploadedFile);
+      if (!isPlaying || audioFiles.length === 0) {
+        setAudioUrl(fileUrl);
+        setCurrentFile(uploadedFile);
+        setAudioImg(audioImage ?? null); // Use audioImage directly
+      }
+
       console.log(parsedMeta);
     } catch (error) {
       console.error("Error parsing metadata:", error);
@@ -129,14 +151,16 @@ export default function AudioPlayer() {
         uuid: uploadedAudioUUID,
         file: uploadedFile,
         metadata: undefined,
+        img: null,
       };
       setAudioFiles((prev) => [...prev, newAudioFile]);
-    }
 
-    const fileUrl = URL.createObjectURL(uploadedFile);
-    if (!isPlaying || audioFiles.length === 0) {
-      setAudioUrl(fileUrl);
-      setCurrentFile(uploadedFile);
+      const fileUrl = URL.createObjectURL(uploadedFile);
+      if (!isPlaying || audioFiles.length === 0) {
+        setAudioUrl(fileUrl);
+        setCurrentFile(uploadedFile);
+        setAudioImg(audioImg);
+      }
     }
 
     fileInputRef.current?.blur();
@@ -161,6 +185,17 @@ export default function AudioPlayer() {
       progressColorInputRef.current.value = currentProgress;
     }
   };
+
+  const convertBufferToImg = (content: Uint8Array) => {
+    const image = URL.createObjectURL(
+      new Blob([content.buffer], { type: "image/*" })
+    );
+    return image;
+  };
+
+  const imageUrl = useMemo(() => {
+    return audioImg ? convertBufferToImg(audioImg) : lilGhost;
+  }, [audioImg]);
 
   const handleWaveColorChange = (event: ChangeEvent<HTMLInputElement>) => {
     const newColor = event.target.value;
@@ -225,11 +260,13 @@ export default function AudioPlayer() {
     if (currentFile === file) return;
 
     muteAudio();
+    const selectedAudioFile = audioFiles.find((af) => af.file === file);
     const wasPlaying = isPlaying;
     const newBlob = new Blob([file], { type: file.type });
     const fileUrl = URL.createObjectURL(newBlob);
     setCurrentFile(file);
     setAudioUrl(fileUrl);
+    setAudioImg(selectedAudioFile?.img ?? null);
 
     if (wasPlaying) {
       shouldAutoPlayRef.current = true;
@@ -404,16 +441,37 @@ export default function AudioPlayer() {
     }
   }, [currentFile]);
 
+  useEffect(() => {
+    console.log("audioImg changed:", audioImg ? "has image" : "no image");
+  }, [audioImg]);
+
   return (
-    <section className="flex items-center w-full justify-center h-full flex-col gap-4 pb-2">
+    <section className="flex items-center w-full justify-center h-full flex-col gap-3 pb-2">
       <section className="flex flex-col items-center justify-between mx-auto md:flex-row w-[75%]">
-        <p className="font-coupri overflow-scroll max-w-[47%] no-scrollbar text-default-600 whitespace-nowrap">
-          {currentFile
-            ? currentFile.name
-            : audioFiles.length > 0
-            ? "Select a new track"
-            : "Upload a new track"}
-        </p>
+        <section className="flex items-center justify-start gap-1 w-[50%]">
+          {currentFile && !audioImg && (
+            <div className="bg-secondary border-secondary-900 border-2 w-12 h-12 rounded flex text-white items-center justify-center">
+              <Ghost
+                className={`${
+                  isPlaying ? "animate-bounce mt-2.5" : ""
+                } items-center justify-center flex w-9 h-9 transition-all duration-1050`}
+              />
+            </div>
+          )}
+          {currentFile && audioImg && (
+            <div className="border-secondary-900 border-2 w-12 h-12 rounded flex text-white items-center justify-center">
+              <Image radius="md" src={imageUrl} fallbackSrc={lilGhost} />
+            </div>
+          )}
+          <p className="font-coupri overflow-scroll max-w-[80%] no-scrollbar h-12 gap-2 flex items-end text-default-600 whitespace-nowrap">
+            {currentFile
+              ? currentFile.name
+              : audioFiles.length > 0
+              ? "Select a new track"
+              : "Upload a new track"}
+          </p>
+        </section>
+
         <p className="text-center font-coupri text-default-600">
           {formatDuration(playTime)} /{" "}
           {formatDuration(wavePlayer?.getDuration()!)}
