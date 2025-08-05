@@ -1,4 +1,11 @@
-import { Link, Navbar, NavbarContent, NavbarItem, Switch } from "@heroui/react";
+import {
+  Avatar,
+  Link,
+  Navbar,
+  NavbarContent,
+  NavbarItem,
+  Switch,
+} from "@heroui/react";
 import { useTheme } from "@heroui/use-theme";
 import { IconMoon, IconSun } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
@@ -12,12 +19,8 @@ type NavBarRouteType = {
 export default function NavBar() {
   const NavBarRoutes: NavBarRouteType[] = [
     {
-      name: "Home",
+      name: "",
       href: "/",
-    },
-    {
-      name: "Upload",
-      href: "/upload",
     },
   ];
   const [activePath, setActivePath] = useState<string>("");
@@ -36,7 +39,7 @@ export default function NavBar() {
   return (
     <section className="flex h-dvh items-center justify-center flex-col">
       <Navbar
-        height={36}
+        height={40}
         isBlurred
         isBordered
         className="dark:bg-zinc-900/70 bg-zinc-100"
@@ -62,7 +65,8 @@ export default function NavBar() {
               </Link>
             </NavbarItem>
           ))}
-          <NavbarItem className="flex scale-90 fixed top-0 right-0 p-0.5">
+
+          <NavbarItem className="flex scale-90 fixed gap-2 top-0 right-0 p-0.5">
             <Switch
               defaultSelected={theme === "dark"}
               color="secondary"
@@ -72,6 +76,13 @@ export default function NavBar() {
               onValueChange={() =>
                 theme === "dark" ? setTheme("light") : setTheme("dark")
               }
+            />
+            <Avatar
+              className="mt-0.5"
+              isBordered
+              color="secondary"
+              size="sm"
+              src="https://i1.sndcdn.com/avatars-OSPti28nvgeCZczM-AU4NKQ-t1080x1080.jpg"
             />
           </NavbarItem>
         </NavbarContent>

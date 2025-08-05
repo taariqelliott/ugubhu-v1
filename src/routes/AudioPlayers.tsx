@@ -1,9 +1,11 @@
-import { ChangeEvent, SVGProps, useEffect, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { Howl } from "howler";
 import { IAudioMetadata, parseBlob } from "music-metadata";
 import { useWavesurfer } from "@wavesurfer/react";
 import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
+import { VerticalDotsIcon } from "../components/VeritcalDotsIcon";
+import { AudioFile } from "../types/types";
 import {
   Dropdown,
   DropdownItem,
@@ -21,6 +23,9 @@ import {
 } from "@heroui/react";
 import {
   IconColorFilter,
+  IconFidgetSpinner,
+  IconGhost3,
+  IconGhost3Filled,
   IconPlayerPauseFilled,
   IconPlayerPlayFilled,
   IconRepeat,
@@ -28,24 +33,21 @@ import {
   IconTrash,
   IconVolume,
   IconVolumeOff,
+  IconX,
 } from "@tabler/icons-react";
-
-export type IconSvgProps = SVGProps<SVGSVGElement> & {
-  size?: number;
-};
 
 export default function AudioPlayer() {
   // State Variables
-  const [fileList, setFileList] = useState<File[]>([]);
+  const [audioFiles, setAudioFiles] = useState<AudioFile[]>([]);
   const [audioUrl, setAudioUrl] = useState<string>("");
   const [currentFile, setCurrentFile] = useState<File | undefined>();
   const [audioInstance, setAudioInstance] = useState<Howl | undefined>();
-  const [, setAudioMeta] = useState<IAudioMetadata>();
+  const [, setAudioMeta] = useState<IAudioMetadata | undefined>();
   const [waveLoaded, setWaveLoaded] = useState<boolean>(false);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [, setIsSeeking] = useState<boolean>(false);
   const [isLooping, setIsLooping] = useState<boolean>(false);
+  // const [, setIsSeeking] = useState<boolean>(false);
 
   // Refs
   const waveContainerRef = useRef(null);
@@ -60,17 +62,17 @@ export default function AudioPlayer() {
   const { wavesurfer: wavePlayer, currentTime: playTime } = useWavesurfer({
     container: waveContainerRef,
     url: audioUrl,
-    barWidth: 0.7,
+    barWidth: 0.3,
     barRadius: 10,
     cursorWidth: 2,
-    barGap: 1,
-    // dragToSeek: true,
+    barGap: 0.05,
     backend: "WebAudio",
+    // dragToSeek: true,
   });
 
   // Utility Functions
   const generateHexColor = (): string => {
-    const hexChars = "0123456789abcdef";
+    const hexChars = "0123456789ABCDEF";
     let hexValue = "#";
     for (let i = 0; i < 6; i++) {
       hexValue += hexChars[Math.floor(Math.random() * hexChars.length)];
@@ -107,17 +109,40 @@ export default function AudioPlayer() {
   };
 
   // Event Handlers
-  const handleFileUpload = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const uploadedFile = event.target.files?.[0];
     if (!uploadedFile) return;
 
-    setFileList((prev) => [...prev, uploadedFile]);
+    try {
+      const parsedMeta = await parseBlob(uploadedFile);
+      const uploadedAudioUUID = crypto.randomUUID();
+      const newAudioFile: AudioFile = {
+        uuid: uploadedAudioUUID,
+        file: uploadedFile,
+        metadata: parsedMeta,
+      };
+
+      setAudioFiles((prev) => [...prev, newAudioFile]);
+      setAudioMeta(parsedMeta);
+      console.log(parsedMeta);
+    } catch (error) {
+      console.error("Error parsing metadata:", error);
+      const uploadedAudioUUID = crypto.randomUUID();
+      const newAudioFile: AudioFile = {
+        uuid: uploadedAudioUUID,
+        file: uploadedFile,
+        metadata: undefined,
+      };
+      setAudioFiles((prev) => [...prev, newAudioFile]);
+    }
 
     const fileUrl = URL.createObjectURL(uploadedFile);
-    if (!isPlaying) {
+    if (!isPlaying || audioFiles.length === 0) {
       setAudioUrl(fileUrl);
       setCurrentFile(uploadedFile);
     }
+
+    fileInputRef.current?.blur();
 
     let currentWave = currentWaveColorRef.current;
     let currentProgress = currentProgressColorRef.current;
@@ -138,19 +163,6 @@ export default function AudioPlayer() {
     if (progressColorInputRef.current) {
       progressColorInputRef.current.value = currentProgress;
     }
-
-    (async () => {
-      try {
-        const parsedMeta = await parseBlob(uploadedFile);
-        setAudioMeta(parsedMeta);
-        if (parsedMeta) {
-          console.log(parsedMeta);
-        }
-      } catch (error) {
-        console.error("Error parsing metadata:", error);
-      }
-    })();
-    fileInputRef.current?.blur();
   };
 
   const handleWaveColorChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -215,6 +227,7 @@ export default function AudioPlayer() {
   const switchAudio = (file: File) => {
     if (currentFile === file) return;
 
+    muteAudio();
     const wasPlaying = isPlaying;
     const newBlob = new Blob([file], { type: file.type });
     const fileUrl = URL.createObjectURL(newBlob);
@@ -230,6 +243,21 @@ export default function AudioPlayer() {
     }
     if (progressColorInputRef.current && currentProgressColorRef.current) {
       progressColorInputRef.current.value = currentProgressColorRef.current;
+    }
+  };
+
+  const deleteSong = (file: File) => {
+    const newaudioFiles = audioFiles.filter(
+      (song) => song.file.name != file.name
+    );
+    setAudioFiles(newaudioFiles);
+    if (currentFile?.name === file.name) {
+      audioInstance?.stop();
+      audioInstance?.unload();
+      wavePlayer?.destroy();
+      wavePlayer?.empty();
+      setCurrentFile(undefined);
+      setWaveLoaded(false);
     }
   };
 
@@ -325,19 +353,19 @@ export default function AudioPlayer() {
       audioInstance.seek(clickTime);
     };
 
-    const handleSeekStart = () => {
-      setIsSeeking(true);
-      wavePlayer.pause();
-    };
+    // const handleDragStart = () => {
+    //   setIsSeeking(true);
+    //   wavePlayer.pause();
+    // };
 
-    const handleSeekEnd = () => {
-      const newTime = wavePlayer.getCurrentTime();
-      audioInstance.seek(newTime);
-      if (isPlaying) {
-        wavePlayer.play();
-      }
-      setIsSeeking(false);
-    };
+    // const handleDragEnd = () => {
+    //   const newTime = wavePlayer.getCurrentTime();
+    //   audioInstance.seek(newTime);
+    //   if (isPlaying) {
+    //     wavePlayer.play();
+    //   }
+    //   setIsSeeking(false);
+    // };
 
     const handleTrackEnd = () => {
       wavePlayer.stop();
@@ -350,15 +378,15 @@ export default function AudioPlayer() {
     };
 
     wavePlayer.on("click", handleWaveClick);
-    wavePlayer.on("dragstart", handleSeekStart);
-    wavePlayer.on("dragend", handleSeekEnd);
     wavePlayer.on("finish", handleTrackEnd);
+    // wavePlayer.on("dragstart", handleDragStart);
+    // wavePlayer.on("dragend", handleDragEnd);
 
     return () => {
       wavePlayer.un("click", handleWaveClick);
-      wavePlayer.un("dragstart", handleSeekStart);
-      wavePlayer.un("dragend", handleSeekEnd);
       wavePlayer.un("finish", handleTrackEnd);
+      // wavePlayer.un("dragstart", handleDragStart);
+      // wavePlayer.un("dragend", handleDragEnd);
     };
   }, [wavePlayer, audioInstance, isPlaying, isLooping]);
 
@@ -370,50 +398,22 @@ export default function AudioPlayer() {
     };
   }, [audioInstance]);
 
-  const VerticalDotsIcon = ({
-    size = 24,
-    width,
-    height,
-    ...props
-  }: IconSvgProps) => {
-    return (
-      <svg
-        aria-hidden="true"
-        fill="none"
-        focusable="false"
-        height={size || height}
-        role="presentation"
-        viewBox="0 0 24 24"
-        width={size || width}
-        {...props}
-      >
-        <path
-          d="M12 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 12c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
-          fill="currentColor"
-        />
-      </svg>
-    );
-  };
+  useEffect(() => {
+    if (!progressColorInputRef.current || !waveColorInputRef.current) return;
 
-  const deleteItem = (file: File) => {
-    const newFileList = fileList.filter((item) => item.name != file.name);
-    setFileList(newFileList);
-    if (currentFile?.name === file.name) {
-      audioInstance?.stop();
-      audioInstance?.unload();
-      wavePlayer?.destroy();
-      wavePlayer?.empty();
-      setCurrentFile(undefined);
+    if (!currentFile) {
+      progressColorInputRef.current.value = "#000000";
+      waveColorInputRef.current.value = "#000000";
     }
-  };
+  }, [currentFile]);
 
   return (
-    <section className="flex items-center w-full justify-center h-full flex-col gap-4">
+    <section className="flex items-center w-full justify-center h-full flex-col gap-4 pb-2">
       <section className="flex flex-col items-center justify-between mx-auto md:flex-row w-[75%]">
-        <p className="font-coupri text-default-600">
+        <p className="font-coupri overflow-scroll max-w-[47%] no-scrollbar text-default-600 whitespace-nowrap">
           {currentFile
             ? currentFile.name
-            : fileList.length > 0
+            : audioFiles.length > 0
             ? "Select a new track"
             : "Upload a new track"}
         </p>
@@ -422,6 +422,7 @@ export default function AudioPlayer() {
           {formatDuration(wavePlayer?.getDuration()!)}
         </p>
       </section>
+
       <section
         id="waveform-visualization"
         className={`w-[75%] h-[128px] ${
@@ -431,11 +432,12 @@ export default function AudioPlayer() {
       >
         <section className={`${waveLoaded && "hidden"}`}>
           {currentFile && !waveLoaded ? (
-            <Spinner
-              className={`${waveLoaded && "hidden"}`}
-              size="lg"
-              color="secondary"
-            />
+            <div className="flex items-center font-coupri justify-center flex-col gap-1">
+              <p className="animate-pulse text-default-600">
+                Generating Waveform...
+              </p>
+              <IconGhost3Filled className="text-default-600 animate-bounce" />
+            </div>
           ) : (
             ""
           )}
@@ -447,7 +449,7 @@ export default function AudioPlayer() {
           className="h-12 w-12 border-0 p-0 [border-radius:0.375rem] [&::-moz-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch-wrapper]:[border-radius:0] [&::-webkit-color-swatch-wrapper]:border-0 [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch]:[border-radius:0.375rem]"
           ref={progressColorInputRef}
           type="color"
-          defaultValue={"#000"}
+          defaultValue="#000000"
           disabled={!waveLoaded}
           onChange={handleProgressColorChange}
           aria-label="Change progress color"
@@ -456,7 +458,7 @@ export default function AudioPlayer() {
           className="h-12 w-12 border-0 p-0 [border-radius:0.375rem] [&::-moz-color-swatch]:border-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch-wrapper]:[border-radius:0] [&::-webkit-color-swatch-wrapper]:border-0 [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch]:[border-radius:0.375rem]"
           ref={waveColorInputRef}
           type="color"
-          defaultValue={"#000"}
+          defaultValue="#000000"
           disabled={!waveLoaded}
           onChange={handleWaveColorChange}
           aria-label="Change waveform color"
@@ -505,17 +507,22 @@ export default function AudioPlayer() {
           {isLooping ? <IconRepeat /> : <IconRepeatOff />}
         </Button>
       </section>
+
       <Input
+        id="audioUpload"
         type="file"
         name="audioUpload"
         color="secondary"
         className="w-[75%]"
+        isClearable
+        endContent={<IconX />}
         ref={fileInputRef}
         onChange={handleFileUpload}
         aria-label="Upload Audio File"
-        id="audio-upload-input"
+        placeholder="Upload an audio file"
         accept="audio/*"
       />
+
       <Table
         isHeaderSticky
         className="w-[75%]"
@@ -529,23 +536,39 @@ export default function AudioPlayer() {
         rowHeight={40}
       >
         <TableHeader>
-          <TableColumn align="start" width="33%">
+          <TableColumn align="center" width="20%">
             NAME
           </TableColumn>
-          <TableColumn align="center" width="33%">
+          <TableColumn align="center" width="20%">
             TYPE
           </TableColumn>
-          <TableColumn align="end" width="33%">
+          <TableColumn align="center" width="20%">
+            BPM
+          </TableColumn>
+          <TableColumn align="center" width="20%">
+            KEY
+          </TableColumn>
+          <TableColumn align="center" width="20%">
             ACTIONS
           </TableColumn>
         </TableHeader>
-
         <TableBody emptyContent={"No songs are uploaded."}>
-          {fileList.map((item) => (
-            <TableRow key={item.name} onClick={() => switchAudio(item)}>
-              <TableCell className="text-secondary-700">{item.name}</TableCell>
+          {audioFiles.map((song) => (
+            <TableRow
+              key={song.file.name}
+              onClick={() => switchAudio(song.file)}
+            >
+              <TableCell className="text-secondary-700">
+                {song.file.name}
+              </TableCell>
               <TableCell className="text-success-700">
-                {item.type.substring(item.type.indexOf("/") + 1)}
+                {song.file.type.substring(song.file.type.indexOf("/") + 1)}
+              </TableCell>
+              <TableCell className="text-warning-700">
+                {song.metadata?.common.bpm}
+              </TableCell>
+              <TableCell className="text-danger-700">
+                {song.metadata?.common.key}
               </TableCell>
               <TableCell>
                 <Dropdown>
@@ -556,8 +579,8 @@ export default function AudioPlayer() {
                   </DropdownTrigger>
                   <DropdownMenu>
                     <DropdownItem
-                      color="default"
-                      onClick={() => deleteItem(item)}
+                      color="secondary"
+                      onClick={() => deleteSong(song.file)}
                       key="delete"
                     >
                       <div className="flex items-center justify-start gap-4">

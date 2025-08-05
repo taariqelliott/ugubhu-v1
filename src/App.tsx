@@ -1,14 +1,12 @@
 import { Route, Routes } from "react-router";
-import Home from "./routes/Home";
-import Upload from "./routes/Upload";
 import NavBarLayout from "./components/NavBarLayout";
+import AudioPlayer from "./routes/AudioPlayers";
 
 export default function App() {
   return (
     <Routes>
       <Route element={<NavBarLayout />}>
-        <Route index element={<Home />} />
-        <Route path="upload" element={<Upload />} />
+        <Route index element={<AudioPlayer />} />
       </Route>
     </Routes>
   );
