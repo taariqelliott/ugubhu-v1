@@ -11,7 +11,6 @@ import {
   DropdownItem,
   DropdownMenu,
   DropdownTrigger,
-  Spinner,
 } from "@heroui/react";
 import {
   Table,
@@ -23,8 +22,6 @@ import {
 } from "@heroui/react";
 import {
   IconColorFilter,
-  IconFidgetSpinner,
-  IconGhost3,
   IconGhost3Filled,
   IconPlayerPauseFilled,
   IconPlayerPlayFilled,
