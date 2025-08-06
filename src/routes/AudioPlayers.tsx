@@ -66,6 +66,7 @@ export default function AudioPlayer() {
     cursorWidth: 2,
     barGap: 0.05,
     backend: "WebAudio",
+    normalize: true,
     // dragToSeek: true,
   });
 
@@ -558,7 +559,7 @@ export default function AudioPlayer() {
       />
 
       <Table
-        isHeaderSticky
+        // isHeaderSticky
         className="w-[75%]"
         selectionMode="single"
         aria-label="File selection table"
@@ -593,18 +594,18 @@ export default function AudioPlayer() {
               onClick={() => changeCurrentSong(song.file)}
             >
               <TableCell className="text-secondary-700">
-                {song.file.name}
+                {song.file.name || "n/a"}
               </TableCell>
               <TableCell className="text-success-700">
-                {song.file.type.substring(song.file.type.indexOf("/") + 1)}
-              </TableCell>
-              <TableCell className="text-warning-700">
-                {song.metadata?.common.bpm !== 0
-                  ? song.metadata?.common.bpm
+                {song.file.type
+                  ? song.file.type.substring(song.file.type.indexOf("/") + 1)
                   : "n/a"}
               </TableCell>
+              <TableCell className="text-warning-700">
+                {song.metadata?.common.bpm || "n/a"}
+              </TableCell>
               <TableCell className="text-danger-700">
-                {song.metadata?.common.key}
+                {song.metadata?.common.key || "n/a"}
               </TableCell>
               <TableCell>
                 <Dropdown>
