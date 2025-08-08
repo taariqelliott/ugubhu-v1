@@ -620,7 +620,7 @@ export default function AudioPlayer() {
                       onClick={() => deleteSong(song.file)}
                       key="delete"
                     >
-                      <div className="flex items-center justify-start gap-4">
+                      <div className="flex items-center justify-start gap-2">
                         <IconTrash size={16} className="text-danger" />
                         <span className="text-danger">Delete</span>
                       </div>
