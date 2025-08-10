@@ -6,6 +6,8 @@ As a music lover who grew up with Winamp’s iconic visuals, dedicated music sto
 
 ---
 
+## ![ugubhu v0.1](./src/assets/ugubhu.png)
+
 ## ✨ Current Features
 
 - **Local Audio Playback** — Load and play music files directly from your computer.
