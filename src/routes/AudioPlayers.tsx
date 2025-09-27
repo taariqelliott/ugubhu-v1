@@ -1,13 +1,5 @@
-import { Howl } from "howler";
-import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
-import { AudioFile } from "../types/types";
-import lilGhost from "../assets/lilghost.png";
-import { Ghost } from "../components/ExtraIcons";
-import { useWavesurfer } from "@wavesurfer/react";
-import { IAudioMetadata, parseBlob } from "music-metadata";
-import { VerticalDotsIcon } from "../components/ExtraIcons";
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { Input } from "@heroui/input";
 import {
   Dropdown,
   DropdownItem,
@@ -15,11 +7,11 @@ import {
   DropdownTrigger,
   Image,
   Table,
-  TableHeader,
   TableBody,
-  TableColumn,
-  TableRow,
   TableCell,
+  TableColumn,
+  TableHeader,
+  TableRow,
 } from "@heroui/react";
 import {
   IconColorFilter,
@@ -33,6 +25,13 @@ import {
   IconVolumeOff,
   IconX,
 } from "@tabler/icons-react";
+import { useWavesurfer } from "@wavesurfer/react";
+import { Howl } from "howler";
+import { IAudioMetadata, parseBlob } from "music-metadata";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import lilGhost from "../assets/lilghost.png";
+import { Ghost, VerticalDotsIcon } from "../components/ExtraIcons";
+import { AudioFile } from "../types/types";
 
 export default function AudioPlayer() {
   // State Variables
